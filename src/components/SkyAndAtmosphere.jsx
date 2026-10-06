@@ -107,14 +107,14 @@ export default function SkyAndAtmosphere({ timeMode = "noon" }) {
       {/* Restrained ambient fill so shadow areas have realistic contrast */}
       <ambientLight intensity={0.18} color="#e2e8f0" />
 
-      {/* Volumetric Clouds with Soft Daylight Shading */}
-      <Clouds material={THREE.MeshLambertMaterial} limit={400}>
+      {/* Volumetric Clouds with Soft Daylight Shading (Optimized segments) */}
+      <Clouds material={THREE.MeshLambertMaterial} limit={200}>
         <Cloud
           seed={1}
           position={[-45, 58, -40]}
           bounds={[60, 6, 32]}
           volume={14}
-          segments={20}
+          segments={10}
           speed={0.4}
           opacity={0.5}
           fade={70}
@@ -125,7 +125,7 @@ export default function SkyAndAtmosphere({ timeMode = "noon" }) {
           position={[52, 62, -50]}
           bounds={[64, 7, 30]}
           volume={15}
-          segments={18}
+          segments={9}
           speed={0.35}
           opacity={0.48}
           fade={75}
@@ -136,7 +136,7 @@ export default function SkyAndAtmosphere({ timeMode = "noon" }) {
           position={[-30, 64, 55]}
           bounds={[55, 6, 28]}
           volume={12}
-          segments={18}
+          segments={9}
           speed={0.45}
           opacity={0.45}
           fade={65}
@@ -147,7 +147,7 @@ export default function SkyAndAtmosphere({ timeMode = "noon" }) {
           position={[40, 56, 45]}
           bounds={[58, 6, 26]}
           volume={13}
-          segments={16}
+          segments={8}
           speed={0.4}
           opacity={0.48}
           fade={70}

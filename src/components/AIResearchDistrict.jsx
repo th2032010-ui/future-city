@@ -1,4 +1,4 @@
-import { useRef, useMemo } from "react";
+import { useRef, useMemo, memo } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
@@ -6,17 +6,12 @@ import * as THREE from "three";
 function useResearchMaterials() {
   return useMemo(() => {
     // Ultra-transparent glass facade for labs
-    const labGlass = new THREE.MeshPhysicalMaterial({
+    const labGlass = new THREE.MeshStandardMaterial({
       color: "#e0f7ff",
-      roughness: 0.02,
-      metalness: 0.05,
-      transmission: 0.82,
-      thickness: 1.2,
+      roughness: 0.04,
+      metalness: 0.15,
       transparent: true,
-      opacity: 0.88,
-      clearcoat: 1.0,
-      clearcoatRoughness: 0.04,
-      reflectivity: 0.98,
+      opacity: 0.72,
     });
 
     // White structural frame
@@ -27,16 +22,14 @@ function useResearchMaterials() {
     });
 
     // Floating data sphere – emissive turquoise
-    const dataSphere = new THREE.MeshPhysicalMaterial({
+    const dataSphere = new THREE.MeshStandardMaterial({
       color: "#06b6d4",
       emissive: "#06b6d4",
-      emissiveIntensity: 1.4,
-      roughness: 0.05,
-      metalness: 0.3,
-      transmission: 0.45,
+      emissiveIntensity: 1.6,
+      roughness: 0.1,
+      metalness: 0.2,
       transparent: true,
-      opacity: 0.78,
-      clearcoat: 1.0,
+      opacity: 0.85,
     });
 
     // Hologram plane – additive glow
@@ -275,11 +268,8 @@ function ResearchRobot({ startAngle, orbitRadius, speed = 0.18, mats }) {
 }
 
 // ─── Smart AI Garden Bed ──────────────────────────────────────────────────────
-function SmartGardenBed({ position, width = 4, depth = 2, mats }) {
-  const plantRefs = useRef([]);
-
+const SmartGardenBed = memo(function SmartGardenBed({ position, width = 4, depth = 2, mats }) {
   const plants = useMemo(() => {
-    // Deterministic seeded values – avoids Math.random() inside render
     const seed = [
       0.12, 0.74, 0.33, 0.91, 0.55, 0.27, 0.68, 0.43, 0.82, 0.16, 0.59, 0.38,
     ];
@@ -304,18 +294,6 @@ function SmartGardenBed({ position, width = 4, depth = 2, mats }) {
     return pts;
   }, [width, depth]);
 
-  useFrame(({ clock }) => {
-    const t = clock.elapsedTime;
-    plantRefs.current.forEach((ref, i) => {
-      if (ref) {
-        const plant = plants[i];
-        // Gentle AI-managed growth sway
-        ref.rotation.z = Math.sin(t * 0.6 + plant.phase) * 0.08;
-        ref.rotation.x = Math.cos(t * 0.4 + plant.phase) * 0.06;
-      }
-    });
-  });
-
   return (
     <group position={position}>
       {/* Planter box */}
@@ -331,12 +309,12 @@ function SmartGardenBed({ position, width = 4, depth = 2, mats }) {
         <boxGeometry args={[width * 0.6, 0.04, 0.06]} />
       </mesh>
 
-      {/* Individual plants */}
+      {/* Individual plants with static natural orientation */}
       {plants.map((p, i) => (
         <group
           key={i}
-          ref={(el) => (plantRefs.current[i] = el)}
           position={[p.x, 0.3 + p.size * 0.5, p.z]}
+          rotation={[p.phase * 0.2, p.phase, 0]}
         >
           <mesh material={mats.smartFoliage}>
             <dodecahedronGeometry args={[p.size, 0]} />
@@ -345,7 +323,7 @@ function SmartGardenBed({ position, width = 4, depth = 2, mats }) {
       ))}
     </group>
   );
-}
+});
 
 // ─── Transparent Research Lab Building ───────────────────────────────────────
 function ResearchLab({
@@ -503,9 +481,8 @@ function AIHubDome({ position, mats }) {
       {/* Pulsing energy sphere at apex */}
       <group ref={pulseRef} position={[0, 9.2, 0]}>
         <mesh material={mats.dataSphere}>
-          <sphereGeometry args={[0.9, 24, 24]} />
+          <sphereGeometry args={[0.9, 20, 20]} />
         </mesh>
-        <pointLight color="#06b6d4" intensity={2.5} distance={18} decay={2} />
       </group>
 
       {/* Orbiting data rings */}
@@ -543,7 +520,7 @@ function AIHubDome({ position, mats }) {
 }
 
 // ─── Master AI Research District ─────────────────────────────────────────────
-export default function AIResearchDistrict({ position = [0, 0, -38] }) {
+function AIResearchDistrict({ position = [0, 0, -38] }) {
   const mats = useResearchMaterials();
 
   // Lab layout: 6 labs arranged around the central dome
@@ -619,8 +596,8 @@ export default function AIResearchDistrict({ position = [0, 0, -38] }) {
         />
       ))}
 
-      {/* --- Floating Data Spheres --- */}
-      <FloatingDataSpheres count={28} mats={mats} />
+      {/* --- Floating Data Spheres (50% particle reduction) --- */}
+      <FloatingDataSpheres count={14} mats={mats} />
 
       {/* --- Autonomous Research Robots --- */}
       {robots.map((r, i) => (
@@ -640,10 +617,10 @@ export default function AIResearchDistrict({ position = [0, 0, -38] }) {
       <SmartGardenBed position={[-8,  0.4,  18]} width={5} depth={1.6} mats={mats} />
       <SmartGardenBed position={[8,   0.4,  18]} width={5} depth={1.6} mats={mats} />
 
-      {/* Ambient light to brighten lab interiors */}
+      {/* District ambient fill light */}
       <pointLight position={[0, 12, 0]} color="#e0f7ff" intensity={1.8} distance={40} decay={2} />
-      <pointLight position={[-14, 8, 5]} color="#bae6fd" intensity={1.2} distance={22} decay={2} />
-      <pointLight position={[14, 8, 5]}  color="#bae6fd" intensity={1.2} distance={22} decay={2} />
     </group>
   );
 }
+
+export default memo(AIResearchDistrict);

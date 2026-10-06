@@ -1,4 +1,4 @@
-import { useRef, useMemo } from "react";
+import { useRef, useMemo, memo } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
@@ -17,15 +17,13 @@ function useEnergyMaterials() {
     const solarFrame = new THREE.MeshStandardMaterial({
       color: "#f1f5f9", roughness: 0.3, metalness: 0.25,
     });
-    const skyGlass = new THREE.MeshPhysicalMaterial({
-      color: "#bae6fd", roughness: 0.04, metalness: 0.1,
-      transmission: 0.72, transparent: true, opacity: 0.88,
-      clearcoat: 1.0, reflectivity: 0.95,
+    const skyGlass = new THREE.MeshStandardMaterial({
+      color: "#bae6fd", roughness: 0.04, metalness: 0.15,
+      transparent: true, opacity: 0.85,
     });
-    const turquoiseGlass = new THREE.MeshPhysicalMaterial({
-      color: "#67e8f9", roughness: 0.04, metalness: 0.15,
-      transmission: 0.65, transparent: true, opacity: 0.85,
-      clearcoat: 1.0,
+    const turquoiseGlass = new THREE.MeshStandardMaterial({
+      color: "#67e8f9", roughness: 0.04, metalness: 0.2,
+      transparent: true, opacity: 0.85,
     });
     const hydroGreen = new THREE.MeshStandardMaterial({
       color: "#d1fae5", roughness: 0.2, metalness: 0.25,
@@ -51,10 +49,9 @@ function useEnergyMaterials() {
     const pipeMat = new THREE.MeshStandardMaterial({
       color: "#cbd5e1", roughness: 0.2, metalness: 0.6,
     });
-    const waterMat = new THREE.MeshPhysicalMaterial({
-      color: "#38bdf8", roughness: 0.02, metalness: 0.05,
-      transmission: 0.6, transparent: true, opacity: 0.82,
-      clearcoat: 1.0,
+    const waterMat = new THREE.MeshStandardMaterial({
+      color: "#38bdf8", roughness: 0.02, metalness: 0.2,
+      transparent: true, opacity: 0.82,
     });
 
     return {
@@ -112,7 +109,6 @@ function SolarTower({ position, height = 32, rotation = 0, mats }) {
         <mesh ref={glowRef} position={[0, 0.5, 0]} material={mats.glowYellow}>
           <sphereGeometry args={[0.28, 16, 16]} />
         </mesh>
-        <pointLight position={[0, 0.5, 0]} color="#fbbf24" intensity={3.5} distance={14} decay={2} />
       </group>
       {/* Blue accent ring on mast mid-point */}
       <mesh position={[0, height * 0.5, 0]} material={mats.glowBlue}>
@@ -141,7 +137,7 @@ function WindTurbine({ position, height = 28, bladeLen = 10, rotation = 0, speed
 
   return (
     <group position={position} rotation={[0, rotation, 0]}>
-      {/* Tower */}
+      {/* Tower mast casts clean shadow */}
       <mesh position={[0, height / 2, 0]} material={mats.whiteFacade} castShadow>
         <cylinderGeometry args={[0.28, 0.65, height, 10]} />
       </mesh>
@@ -153,13 +149,13 @@ function WindTurbine({ position, height = 28, bladeLen = 10, rotation = 0, speed
       <mesh position={[0, height + 0.6, 1.2]} material={mats.silverMet}>
         <sphereGeometry args={[0.45, 12, 12]} />
       </mesh>
-      {/* Rotor (3 blades) */}
+      {/* Rotor (3 blades) - no expensive dynamic shadow passes */}
       <group ref={rotorRef} position={[0, height + 0.6, 1.2]}>
         {[0, 1, 2].map((i) => {
           const angle = (i / 3) * Math.PI * 2;
           return (
             <group key={i} rotation={[0, 0, angle]}>
-              <mesh position={[0, bladeLen / 2, 0.06]} material={mats.whiteFacade} castShadow>
+              <mesh position={[0, bladeLen / 2, 0.06]} material={mats.whiteFacade}>
                 <boxGeometry args={[0.55, bladeLen, 0.12]} />
               </mesh>
               {/* Leading edge accent */}
@@ -182,12 +178,10 @@ function WindTurbine({ position, height = 28, bladeLen = 10, rotation = 0, speed
 // Large cylindrical tank + electrolyser building + pipe network
 function HydrogenFacility({ position, rotation = 0, mats }) {
   const bubbleRefs = useRef([]);
-  // Pre-computed bubble offsets
+  // 50% particle reduction (2 bubbles instead of 4)
   const bubbles = useMemo(() => [
     { x: 0.4,  y: 1.2, z: 0.3,  speed: 0.55, amp: 1.8 },
     { x: -0.3, y: 0.8, z: -0.2, speed: 0.42, amp: 2.1 },
-    { x: 0.1,  y: 1.6, z: 0.5,  speed: 0.68, amp: 1.5 },
-    { x: -0.5, y: 1.0, z: 0.1,  speed: 0.38, amp: 1.9 },
   ], []);
 
   useFrame(({ clock }) => {
@@ -196,7 +190,6 @@ function HydrogenFacility({ position, rotation = 0, mats }) {
       if (!ref) return;
       const b = bubbles[i];
       ref.position.y = b.y + ((t * b.speed) % b.amp);
-      ref.material.opacity = 0.5 - (((t * b.speed) % b.amp) / b.amp) * 0.5;
     });
   });
 
@@ -582,7 +575,7 @@ function SolarTowerFarm({ position, mats }) {
 }
 
 // ─── Master Clean Energy District ─────────────────────────────────────────
-export default function CleanEnergyDistrict({ position = [55, 0, 0] }) {
+function CleanEnergyDistrict({ position = [55, 0, 0] }) {
   const mats = useEnergyMaterials();
 
   return (
@@ -615,12 +608,10 @@ export default function CleanEnergyDistrict({ position = [55, 0, 0] }) {
         <torusGeometry args={[37.5, 1.2, 6, 64]} />
       </mesh>
 
-      {/* Ambient district lighting */}
+      {/* Ambient district fill light */}
       <pointLight position={[0, 18, 0]} color="#e0f7ff" intensity={2.0} distance={55} decay={2} />
-      <pointLight position={[-14, 8, -14]} color="#fcd34d" intensity={1.5} distance={28} decay={2} />
-      <pointLight position={[16, 8, -12]} color="#bae6fd" intensity={1.2} distance={28} decay={2} />
-      <pointLight position={[14, 6, 10]}  color="#86efac" intensity={1.4} distance={24} decay={2} />
-      <pointLight position={[-16, 6, 10]} color="#38bdf8" intensity={1.4} distance={24} decay={2} />
     </group>
   );
 }
+
+export default memo(CleanEnergyDistrict);

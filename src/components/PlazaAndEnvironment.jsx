@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useLayoutEffect, memo } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
@@ -124,23 +124,69 @@ function AutonomousVehicles({ mats }) {
   );
 }
 
-export default function PlazaAndEnvironment() {
+// ─── Instanced Street Lights along the Transit Roadway ─────────────────────────
+const LIGHT_POLE_GEO = new THREE.CylinderGeometry(0.08, 0.12, 4.2, 6);
+const LIGHT_HEAD_GEO = new THREE.BoxGeometry(0.24, 0.12, 0.65);
+const LIGHT_GLOW_GEO = new THREE.BoxGeometry(0.20, 0.04, 0.55);
+
+const InstancedStreetLights = memo(function InstancedStreetLights({ count = 28, radius = 28.2, mats }) {
+  const poleRef = useRef();
+  const headRef = useRef();
+  const glowRef = useRef();
+
+  useLayoutEffect(() => {
+    if (!poleRef.current || !headRef.current || !glowRef.current) return;
+    const dummy = new THREE.Object3D();
+
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2;
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
+
+      // Pole
+      dummy.position.set(x, 2.1, z);
+      dummy.rotation.set(0, -angle + Math.PI / 2, 0);
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      poleRef.current.setMatrixAt(i, dummy.matrix);
+
+      // Arm/Head
+      dummy.position.set(x, 4.1, z);
+      dummy.rotation.set(0, -angle + Math.PI / 2, 0);
+      dummy.updateMatrix();
+      headRef.current.setMatrixAt(i, dummy.matrix);
+
+      // Cyan LED Emitter
+      dummy.position.set(x, 4.02, z);
+      dummy.updateMatrix();
+      glowRef.current.setMatrixAt(i, dummy.matrix);
+    }
+
+    poleRef.current.instanceMatrix.needsUpdate = true;
+    headRef.current.instanceMatrix.needsUpdate = true;
+    glowRef.current.instanceMatrix.needsUpdate = true;
+  }, [count, radius]);
+
+  return (
+    <group>
+      <instancedMesh ref={poleRef} args={[LIGHT_POLE_GEO, mats.whiteMat, count]} frustumCulled />
+      <instancedMesh ref={headRef} args={[LIGHT_HEAD_GEO, mats.whiteMat, count]} frustumCulled />
+      <instancedMesh ref={glowRef} args={[LIGHT_GLOW_GEO, mats.ledTurquoiseMat, count]} frustumCulled />
+    </group>
+  );
+});
+
+export default memo(function PlazaAndEnvironment() {
   const parkTex = useMemo(() => createParkLandscapeTexture(), []);
-  const waterRef = useRef();
 
   const mats = useMemo(() => {
-    // Sparkling turquoise lake water with realistic reflections
-    const waterMat = new THREE.MeshPhysicalMaterial({
+    // Highly-optimized, sparkling turquoise lake water with zero transmission framebuffer copies
+    const waterMat = new THREE.MeshStandardMaterial({
       color: "#06b6d4",
-      roughness: 0.03,
-      metalness: 0.1,
-      transmission: 0.6,
+      roughness: 0.04,
+      metalness: 0.35,
       transparent: true,
-      opacity: 0.9,
-      clearcoat: 1.0,
-      clearcoatRoughness: 0.04,
-      reflectivity: 0.95,
-      ior: 1.333,
+      opacity: 0.88,
     });
 
     const groundMat = new THREE.MeshStandardMaterial({
@@ -173,13 +219,12 @@ export default function PlazaAndEnvironment() {
       metalness: 0.2,
     });
 
-    const bridgeGlassMat = new THREE.MeshPhysicalMaterial({
+    const bridgeGlassMat = new THREE.MeshStandardMaterial({
       color: "#22d3ee",
-      roughness: 0.05,
-      transmission: 0.75,
+      roughness: 0.06,
+      metalness: 0.2,
       transparent: true,
-      opacity: 0.7,
-      clearcoat: 1.0,
+      opacity: 0.65,
     });
 
     const ledTurquoiseMat = new THREE.MeshStandardMaterial({
@@ -201,16 +246,11 @@ export default function PlazaAndEnvironment() {
     };
   }, [parkTex]);
 
-  useFrame(({ clock }) => {
-    // Gentle aquatic water shimmer
-    if (waterRef.current) {
-      const t = clock.elapsedTime;
-      waterRef.current.material.opacity = 0.88 + Math.sin(t * 1.5) * 0.03;
-    }
-  });
-
   return (
     <group>
+      {/* 28 Instanced Architectural Roadway Lights */}
+      <InstancedStreetLights mats={mats} />
+
       {/* Expansive Lush Green Park Ground Plane */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow material={mats.groundMat}>
         <planeGeometry args={[480, 480]} />
@@ -287,4 +327,4 @@ export default function PlazaAndEnvironment() {
       ))}
     </group>
   );
-}
+});

@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useMemo, memo } from "react";
+import { Detailed } from "@react-three/drei";
 import * as THREE from "three";
 
 // Shared materials for sustainable white, blue, turquoise & green curved architecture
@@ -18,31 +19,22 @@ function useSustainableMaterials() {
       metalness: 0.35,
     });
 
-    // Sky blue crystalline solar glass
-    const skyGlass = new THREE.MeshPhysicalMaterial({
+    // Sky blue crystalline solar glass – zero transmission buffer copy overhead
+    const skyGlass = new THREE.MeshStandardMaterial({
       color: "#bae6fd",
       roughness: 0.05,
-      metalness: 0.15,
-      transmission: 0.55,
-      thickness: 0.85,
+      metalness: 0.2,
       transparent: true,
-      opacity: 0.9,
-      clearcoat: 1.0,
-      clearcoatRoughness: 0.06,
-      reflectivity: 0.94,
+      opacity: 0.85,
     });
 
     // Turquoise reflective solar glass
-    const turquoiseGlass = new THREE.MeshPhysicalMaterial({
+    const turquoiseGlass = new THREE.MeshStandardMaterial({
       color: "#67e8f9",
       roughness: 0.05,
-      metalness: 0.2,
-      transmission: 0.58,
-      thickness: 0.9,
+      metalness: 0.25,
       transparent: true,
-      opacity: 0.88,
-      clearcoat: 1.0,
-      reflectivity: 0.96,
+      opacity: 0.85,
     });
 
     // Deep solar photovoltaic cells (integrated into rooftops)
@@ -92,13 +84,12 @@ function useSustainableMaterials() {
     });
 
     // Transparent skybridge glass
-    const bridgeGlassMat = new THREE.MeshPhysicalMaterial({
+    const bridgeGlassMat = new THREE.MeshStandardMaterial({
       color: "#cffafe",
       roughness: 0.04,
-      transmission: 0.78,
+      metalness: 0.15,
       transparent: true,
-      opacity: 0.7,
-      clearcoat: 1.0,
+      opacity: 0.72,
     });
 
     return {
@@ -226,7 +217,7 @@ function SailSpire({ position, height = 46, rotation = 0, mats }) {
         return (
           <group key={i} position={[0, y, curveOffset]}>
             {/* White Curved Cantilever Floor */}
-            <mesh material={mats.whiteFacade} castShadow={i % 3 === 0}>
+            <mesh material={mats.whiteFacade}>
               <cylinderGeometry args={[3.2 * scale, 3.4 * scale, floorH * 0.8, 16, 1, false, 0, Math.PI * 1.5]} />
             </mesh>
             {/* Blue Luminescent Edge Trim */}
@@ -287,7 +278,7 @@ function BioHelixTower({ position, height = 44, radius = 3.5, rotation = 0, mats
           <group key={i} position={[0, y, 0]}>
             {/* Spiral Strand A */}
             <group position={[Math.cos(angleA) * currentR, 0, Math.sin(angleA) * currentR]} rotation={[0, -angleA, 0]}>
-              <mesh material={mats.whiteFacade} castShadow={i % 4 === 0}>
+              <mesh material={mats.whiteFacade}>
                 <boxGeometry args={[1.6, stepH * 0.9, 1.8]} />
               </mesh>
               <mesh position={[0, stepH * 0.45, 0]} material={mats.blueAccentMat}>
@@ -300,7 +291,7 @@ function BioHelixTower({ position, height = 44, radius = 3.5, rotation = 0, mats
 
             {/* Spiral Strand B */}
             <group position={[Math.cos(angleB) * currentR, 0, Math.sin(angleB) * currentR]} rotation={[0, -angleB, 0]}>
-              <mesh material={mats.whiteFacade} castShadow={i % 4 === 0}>
+              <mesh material={mats.whiteFacade}>
                 <boxGeometry args={[1.6, stepH * 0.9, 1.8]} />
               </mesh>
               <mesh position={[0, stepH * 0.45, 0]} material={mats.blueAccentMat}>
@@ -886,7 +877,7 @@ function VerdantRibbon({ position, height = 40, rotation = 0, mats }) {
 // Rings the central turquoise lake with 18 uniquely sculpted,
 // curved, vertical-garden covered skyscrapers linked by skybridges!
 // =============================================================
-export default function Skyscrapers() {
+function Skyscrapers() {
   const mats = useSustainableMaterials();
 
   // Curated layout of 18 landmark curved skyscrapers around the lake (R 27 to 56)
@@ -937,37 +928,21 @@ export default function Skyscrapers() {
 
   return (
     <group>
-      {/* 18 Uniquely Sculpted Curved Skyscrapers */}
-      {skylineLayout.map((tower, idx) => {
-        switch (tower.type) {
-          case "sail":
-            return <SailSpire key={idx} mats={mats} {...tower} />;
-          case "biohelix":
-            return <BioHelixTower key={idx} mats={mats} {...tower} />;
-          case "torus":
-            return <TorusVoidTower key={idx} mats={mats} {...tower} />;
-          case "petals":
-            return <PetalBloomTowers key={idx} mats={mats} {...tower} />;
-          case "vortex":
-            return <VortexHourglass key={idx} mats={mats} {...tower} />;
-          case "teardrop":
-            return <AeroTeardrop key={idx} mats={mats} {...tower} />;
-          case "triad":
-            return <SkybridgeTriad key={idx} mats={mats} {...tower} />;
-          case "biowave":
-            return <BioWaveTower key={idx} mats={mats} {...tower} />;
-          case "crescent":
-            return <CrescentCanopy key={idx} mats={mats} {...tower} />;
-          case "prism":
-            return <PrismTwist key={idx} mats={mats} {...tower} />;
-          case "mobius":
-            return <MobiusArch key={idx} mats={mats} {...tower} />;
-          case "ribbon":
-            return <VerdantRibbon key={idx} mats={mats} {...tower} />;
-          default:
-            return null;
-        }
-      })}
+      {/* 18 Curved Skyscrapers with Smooth Level-of-Detail (LOD) Rendering */}
+      {skylineLayout.map((tower, idx) => (
+        <Detailed
+          key={idx}
+          distances={[0, 85]}
+          position={tower.position}
+          rotation={[0, tower.rotation || 0, 0]}
+        >
+          {/* Level 0 (<85m): High-detail procedural architectural geometry */}
+          <DetailedTowerModel tower={tower} mats={mats} />
+
+          {/* Level 1 (>=85m): Optimized low-poly silhouette matching exact profile & shadows */}
+          <LowPolyTowerModel tower={tower} mats={mats} />
+        </Detailed>
+      ))}
 
       {/* High-Altitude Inter-District Curved Skybridges */}
       {/* Skybridge 1: Linking Sail Spire (Lakefront East) & BioWave Tower */}
@@ -987,3 +962,220 @@ export default function Skyscrapers() {
     </group>
   );
 }
+
+// ─── High-Detail Procedural Tower Model (LOD Level 0) ─────────────────────────
+const DetailedTowerModel = memo(function DetailedTowerModel({ tower, mats }) {
+  switch (tower.type) {
+    case "sail":
+      return <SailSpire mats={mats} {...tower} position={[0, 0, 0]} rotation={0} />;
+    case "biohelix":
+      return <BioHelixTower mats={mats} {...tower} position={[0, 0, 0]} rotation={0} />;
+    case "torus":
+      return <TorusVoidTower mats={mats} {...tower} position={[0, 0, 0]} rotation={0} />;
+    case "petals":
+      return <PetalBloomTowers mats={mats} {...tower} position={[0, 0, 0]} rotation={0} />;
+    case "vortex":
+      return <VortexHourglass mats={mats} {...tower} position={[0, 0, 0]} rotation={0} />;
+    case "teardrop":
+      return <AeroTeardrop mats={mats} {...tower} position={[0, 0, 0]} rotation={0} />;
+    case "triad":
+      return <SkybridgeTriad mats={mats} {...tower} position={[0, 0, 0]} rotation={0} />;
+    case "biowave":
+      return <BioWaveTower mats={mats} {...tower} position={[0, 0, 0]} rotation={0} />;
+    case "crescent":
+      return <CrescentCanopy mats={mats} {...tower} position={[0, 0, 0]} rotation={0} />;
+    case "prism":
+      return <PrismTwist mats={mats} {...tower} position={[0, 0, 0]} rotation={0} />;
+    case "mobius":
+      return <MobiusArch mats={mats} {...tower} position={[0, 0, 0]} rotation={0} />;
+    case "ribbon":
+      return <VerdantRibbon mats={mats} {...tower} position={[0, 0, 0]} rotation={0} />;
+    default:
+      return null;
+  }
+});
+
+// ─── Low-Poly Matching Silhouette (LOD Level 1) ──────────────────────────────
+const LowPolyTowerModel = memo(function LowPolyTowerModel({ tower, mats }) {
+  const { type, height = 40 } = tower;
+
+  switch (type) {
+    case "sail":
+      return (
+        <group>
+          <mesh position={[0, height / 2, 0]} material={mats.skyGlass}>
+            <cylinderGeometry args={[2.4, 4.2, height, 10]} />
+          </mesh>
+          <mesh position={[0, height * 0.48, 1.2]} material={mats.whiteFacade} castShadow>
+            <cylinderGeometry args={[2.8, 3.6, height * 0.95, 10, 1, false, 0, Math.PI * 1.5]} />
+          </mesh>
+          <mesh position={[0, height + 3, 1.2]} material={mats.whiteFacade}>
+            <coneGeometry args={[1.2, 6, 6]} />
+          </mesh>
+          <mesh position={[0, height + 5, 1.2]} material={mats.blueAccentMat}>
+            <cylinderGeometry args={[0.08, 0.08, 4, 6]} />
+          </mesh>
+        </group>
+      );
+    case "biohelix": {
+      const radius = tower.radius || 3.5;
+      return (
+        <group>
+          <mesh position={[0, height / 2, 0]} material={mats.turquoiseGlass}>
+            <cylinderGeometry args={[radius * 0.65, radius * 0.85, height, 10]} />
+          </mesh>
+          <mesh position={[0, height / 2, 0]} material={mats.whiteFacade} castShadow>
+            <cylinderGeometry args={[radius * 1.1, radius * 1.2, height * 0.96, 10]} />
+          </mesh>
+          <mesh position={[0, height + 0.6, 0]} material={mats.solarPanelMat}>
+            <cylinderGeometry args={[radius * 0.7, radius * 0.7, 1.2, 10]} />
+          </mesh>
+        </group>
+      );
+    }
+    case "torus": {
+      const voidY = height * 0.72;
+      return (
+        <group>
+          <mesh position={[0, voidY * 0.45, 0]} material={mats.whiteFacade} castShadow>
+            <cylinderGeometry args={[4.2, 5.2, voidY * 0.9, 10]} />
+          </mesh>
+          <mesh position={[0, voidY * 0.45, 0]} material={mats.skyGlass}>
+            <cylinderGeometry args={[4.25, 5.25, voidY * 0.75, 10]} />
+          </mesh>
+          <mesh position={[0, voidY, 0]} material={mats.whiteFacade} castShadow>
+            <boxGeometry args={[7.8, 8.5, 3.6]} />
+          </mesh>
+          <mesh position={[0, voidY, 0]} material={mats.blueAccentMat}>
+            <torusGeometry args={[2.5, 0.14, 8, 16]} />
+          </mesh>
+        </group>
+      );
+    }
+    case "petals":
+      return (
+        <group>
+          {[0, (Math.PI * 2) / 3, (Math.PI * 4) / 3].map((angle, idx) => (
+            <mesh
+              key={idx}
+              position={[Math.cos(angle) * 3.4, height * 0.48, Math.sin(angle) * 3.4]}
+              material={mats.whiteFacade}
+              castShadow
+            >
+              <cylinderGeometry args={[1.8, 2.4, height * 0.95, 8]} />
+            </mesh>
+          ))}
+        </group>
+      );
+    case "vortex":
+      return (
+        <group>
+          <mesh position={[0, height / 2, 0]} material={mats.skyGlass}>
+            <cylinderGeometry args={[4.2, 2.8, height * 0.5, 10]} />
+          </mesh>
+          <mesh position={[0, height * 0.25, 0]} material={mats.whiteFacade} castShadow>
+            <cylinderGeometry args={[2.8, 4.6, height * 0.5, 10]} />
+          </mesh>
+          <mesh position={[0, height + 2, 0]} material={mats.blueAccentMat}>
+            <cylinderGeometry args={[0.08, 0.08, 4, 6]} />
+          </mesh>
+        </group>
+      );
+    case "teardrop":
+      return (
+        <group>
+          <mesh position={[0, height * 0.48, 0]} material={mats.whiteFacade} castShadow>
+            <cylinderGeometry args={[1.4, 4.2, height * 0.95, 10]} />
+          </mesh>
+          <mesh position={[0, height * 0.48, 0]} material={mats.skyGlass}>
+            <cylinderGeometry args={[1.45, 4.25, height * 0.7, 10]} />
+          </mesh>
+          <mesh position={[0, height + 4, 0]} material={mats.turquoiseAccentMat}>
+            <cylinderGeometry args={[0.08, 0.08, 8, 6]} />
+          </mesh>
+        </group>
+      );
+    case "triad":
+      return (
+        <group>
+          {[0, 1, 2].map((i) => {
+            const angle = (i * Math.PI * 2) / 3;
+            return (
+              <mesh
+                key={i}
+                position={[Math.cos(angle) * 3.8, height / 2, Math.sin(angle) * 3.8]}
+                material={mats.whiteFacade}
+                castShadow
+              >
+                <cylinderGeometry args={[1.6, 2.0, height, 8]} />
+              </mesh>
+            );
+          })}
+        </group>
+      );
+    case "biowave":
+      return (
+        <group>
+          <mesh position={[0, height * 0.48, 0]} material={mats.whiteFacade} castShadow>
+            <boxGeometry args={[7.5, height * 0.95, 4.5]} />
+          </mesh>
+          <mesh position={[0, height * 0.48, 0]} material={mats.turquoiseGlass}>
+            <boxGeometry args={[7.6, height * 0.8, 4.6]} />
+          </mesh>
+        </group>
+      );
+    case "crescent":
+      return (
+        <group>
+          <mesh position={[0, height * 0.48, 0]} material={mats.whiteFacade} castShadow>
+            <cylinderGeometry args={[3.8, 4.6, height * 0.95, 10, 1, false, 0, Math.PI * 1.3]} />
+          </mesh>
+          <mesh position={[0, height * 0.48, 0]} material={mats.skyGlass}>
+            <cylinderGeometry args={[3.85, 4.65, height * 0.75, 10, 1, false, 0, Math.PI * 1.3]} />
+          </mesh>
+        </group>
+      );
+    case "prism":
+      return (
+        <group>
+          <mesh position={[0, height / 2, 0]} material={mats.whiteFacade} castShadow>
+            <cylinderGeometry args={[3.2, 4.4, height, 4]} />
+          </mesh>
+          <mesh position={[0, height / 2, 0]} material={mats.skyGlass}>
+            <cylinderGeometry args={[3.25, 4.45, height * 0.8, 4]} />
+          </mesh>
+        </group>
+      );
+    case "mobius": {
+      const span = tower.span || 7.6;
+      return (
+        <group>
+          <mesh position={[-span / 2, height / 2, 0]} material={mats.whiteFacade} castShadow>
+            <boxGeometry args={[2.2, height, 3.2]} />
+          </mesh>
+          <mesh position={[span / 2, height / 2, 0]} material={mats.whiteFacade} castShadow>
+            <boxGeometry args={[2.2, height, 3.2]} />
+          </mesh>
+          <mesh position={[0, height - 1.5, 0]} material={mats.whiteFacade} castShadow>
+            <boxGeometry args={[span + 2.2, 3, 3.4]} />
+          </mesh>
+        </group>
+      );
+    }
+    case "ribbon":
+      return (
+        <group>
+          <mesh position={[0, height / 2, 0]} material={mats.whiteFacade} castShadow>
+            <boxGeometry args={[3.2, height, 7.5]} />
+          </mesh>
+          <mesh position={[0, height / 2, 0]} material={mats.turquoiseGlass}>
+            <boxGeometry args={[3.3, height * 0.8, 7.6]} />
+          </mesh>
+        </group>
+      );
+    default:
+      return null;
+  }
+});
+
+export default memo(Skyscrapers);

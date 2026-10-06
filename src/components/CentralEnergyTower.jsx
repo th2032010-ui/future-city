@@ -1,8 +1,8 @@
-import { useRef, useMemo } from "react";
+import { useRef, useMemo, memo } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
-export default function CentralEnergyTower({ onSelect, isHovered, onHover }) {
+function CentralEnergyTower({ onSelect, isHovered, onHover }) {
   const coreRef = useRef();
   const ring1Ref = useRef();
   const ring2Ref = useRef();
@@ -18,17 +18,14 @@ export default function CentralEnergyTower({ onSelect, isHovered, onHover }) {
         roughness: 0.25,
         metalness: 0.15,
       }),
-      turquoiseCoreMat: new THREE.MeshPhysicalMaterial({
+      turquoiseCoreMat: new THREE.MeshStandardMaterial({
         color: "#06b6d4",
         emissive: "#22d3ee",
         emissiveIntensity: 2.2,
         roughness: 0.08,
-        metalness: 0.15,
-        transmission: 0.72,
-        thickness: 1.4,
+        metalness: 0.2,
         transparent: true,
-        opacity: 0.9,
-        clearcoat: 1.0,
+        opacity: 0.88,
       }),
       ringMat: new THREE.MeshStandardMaterial({
         color: "#f0fdf4",
@@ -232,3 +229,5 @@ export default function CentralEnergyTower({ onSelect, isHovered, onHover }) {
     </group>
   );
 }
+
+export default memo(CentralEnergyTower);
