@@ -28,7 +28,7 @@ function createParkLandscapeTexture() {
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   texture.repeat.set(32, 32);
-  texture.anisotropy = 8;
+  texture.anisotropy = 16;
   return texture;
 }
 

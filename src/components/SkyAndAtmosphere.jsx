@@ -58,8 +58,8 @@ export default function SkyAndAtmosphere({ timeMode = "noon" }) {
 
   return (
     <>
-      {/* Soft atmospheric aerial perspective fog */}
-      <fog attach="fog" args={[current.fogColor, 130, 440]} />
+      {/* Soft horizon atmospheric aerial perspective fog (starts at 180m to keep the city crystal clear) */}
+      <fog attach="fog" args={[current.fogColor, 180, 520]} />
 
       {/* Natural Soft Azure Sky (less overexposed horizon) */}
       <Sky

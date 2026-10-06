@@ -74,11 +74,11 @@ export default function App() {
 
   return (
     <div style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden" }}>
-      {/* 3D WebGL Canvas */}
+      {/* 3D WebGL Canvas – High-DPI supersampling for crisp geometric clarity */}
       <Canvas
         shadows
         camera={{ position: [65, 40, 65], fov: 46, near: 0.1, far: 850 }}
-        dpr={[1, 2]}
+        dpr={[1.5, 2]}
         gl={{
           antialias: false,           // SMAA handles AA inside EffectComposer
           powerPreference: "high-performance",
