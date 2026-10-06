@@ -258,7 +258,6 @@ export default memo(function PlazaAndEnvironment() {
 
       {/* LARGE TURQUOISE LAKE IN THE CENTER (Radius 22 units) */}
       <mesh
-        ref={waterRef}
         rotation={[-Math.PI / 2, 0, 0]}
         position={[0, 0.08, 0]}
         receiveShadow
